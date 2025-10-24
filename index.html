@@ -10,22 +10,25 @@
   <div id="app">Loading...</div>
 
   <script>
-    // === Color theming ===
-    const baseColors = [
-      "#000000", "#ff0000", "#cc0000", "#990000",
-      "#ff9900", "#ff6600", "#cc5500",
-      "#ffff00", "#cccc00", "#999900",
-      "#0000ff", "#3366ff", "#0033cc",
-      "#800080", "#9933cc", "#660066",
-      "#8a2be2", "#9400d3", "#7a00cc"
+    // === Color scheme ===
+    const darkColors = ["#000000", "#111111", "#0033cc", "#660066", "#222222"];
+    const brightColors = [
+      "#ff0000", "#cc0000", "#ff9900", "#ff6600", "#ffff00",
+      "#cccc00", "#0000ff", "#3366ff", "#800080", "#9933cc",
+      "#8a2be2", "#9400d3"
     ];
-    const picked = [];
-    while (picked.length < 7) {
-      const color = baseColors[Math.floor(Math.random() * baseColors.length)];
-      if (!picked.includes(color)) picked.push(color);
-    }
-    const [bg, text, border, link, hover, button, heading] = picked;
 
+    // Always pick one dark for background
+    const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
+    // Always pick one bright for text
+    const text = brightColors[Math.floor(Math.random() * brightColors.length)];
+
+    // Pick the rest uniquely from the remaining pool
+    const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
+    const shuffle = arr => arr.sort(() => 0.5 - Math.random());
+    const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
+
+    // Inject CSS
     document.getElementById("dynamic-style").textContent = `
       body { font-family: monospace; background:${bg}; color:${text}; padding:2em; }
       h1 { color:${heading}; }
