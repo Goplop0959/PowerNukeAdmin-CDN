@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Power Nuke Admin Video</title>
+</head>
+<body>
+  <h1>🎬 Power Nuke Admin Video</h1>
+  <div id="video-container">Loading...</div>
+
+  <script>
+    // Get UUID from query string
+    const params = new URLSearchParams(window.location.search);
+    const uuid = params.get("id");
+
+    fetch("uploads/manifest.json")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("video-container");
+        container.innerHTML = "";
+
+        // Find entry by UUID
+        const entry = Object.values(data).find(v => v.uuid === uuid);
+        if (!entry) {
+          container.innerText = "❌ Video not found.";
+          return;
+        }
+
+        const filename = Object.keys(data).find(k => data[k].uuid === uuid);
+        const link = entry.link;
+
+        container.innerHTML = `
+          <h2>${filename}</h2>
+          <p>UUID: <code>${entry.uuid}</code></p>
+          <p>Timestamp: <code>${entry.timestamp}</code></p>
+          <video id="player" src="${link}" controls></video>
+          <div>
+            <button onclick="player.play()">▶️ Play</button>
+            <button onclick="player.pause()">⏸️ Pause</button>
+            <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
+          </div>
+          <div id="duration">⏱️ Duration: loading...</div>
+          <a href="${link}" download>📥 Download</a>
+        `;
+
+        const player = document.getElementById("player");
+        player.addEventListener("loadedmetadata", () => {
+          const dur = Math.floor(player.duration);
+          const min = Math.floor(dur / 60);
+          const sec = dur % 60;
+          document.getElementById("duration").textContent =
+            `⏱️ Duration: ${min}m ${sec}s`;
+        });
+      })
+      .catch(() => {
+        document.getElementById("video-container").innerText = "⚠️ Failed to load manifest.";
+      });
+  </script>
+</body>
+</html>
