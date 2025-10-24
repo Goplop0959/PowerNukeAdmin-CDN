@@ -1,2 +1,2 @@
-# Goplop-sCDN
+# PowerNukeAdmin-CDN
 CDN
