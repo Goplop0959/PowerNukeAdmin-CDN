@@ -28,6 +28,19 @@
     a:hover {
       text-decoration: underline;
     }
+    button {
+      margin-top: 0.5em;
+      background-color: #222;
+      color: #00ffc8;
+      border: 1px solid #00ffc8;
+      padding: 0.3em 0.6em;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    button:hover {
+      background-color: #00ffc8;
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -49,7 +62,8 @@
             <strong>${filename}</strong><br>
             UUID: <code>${meta.uuid}</code><br>
             Timestamp: <code>${meta.timestamp}</code><br>
-            <a href="${meta.link}" target="_blank">🔗 View File</a>
+            <a href="${meta.link}" target="_blank">🔗 View File</a><br>
+            <button onclick="copyLink('${meta.link}')">📋 Copy Link</button>
           `;
           container.appendChild(div);
         }
@@ -58,6 +72,12 @@
         document.getElementById("file-list").innerText = "⚠️ Failed to load manifest.";
         console.error(err);
       });
+
+    function copyLink(link) {
+      navigator.clipboard.writeText(link)
+        .then(() => alert("✅ Link copied to clipboard!"))
+        .catch(() => alert("❌ Failed to copy link."));
+    }
   </script>
 </body>
 </html>
