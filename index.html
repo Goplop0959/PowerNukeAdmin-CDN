@@ -3,46 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <title>Power Nuke Admin CDN</title>
-  <style id="dynamic-style"></style>
+  <link rel="stylesheet" href="MainCSS.css">
 </head>
 <body>
   <h1>🎬 Power Nuke Admin CDN</h1>
   <div id="app">Loading...</div>
 
   <script>
-    // === Safe Color Scheme ===
+    // === Safe Color Scheme via CSS variables ===
     const darkColors = ["#000000", "#111111", "#222222", "#0033cc", "#660066"];
     const brightColors = [
       "#ff0000", "#cc0000", "#ff6600", "#ff9900", "#ffff00",
       "#cccc00", "#3366ff", "#8a2be2", "#9400d3"
     ];
 
-    // Always pick one dark for background
     const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
-    // Always pick one bright for text
     const text = brightColors[Math.floor(Math.random() * brightColors.length)];
-
-    // Fill the rest uniquely
     const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
     const shuffle = arr => arr.sort(() => 0.5 - Math.random());
     const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
 
-    // Inject CSS
-    document.getElementById("dynamic-style").textContent = `
-      body { font-family: monospace; background:${bg}; color:${text}; padding:2em; }
-      h1 { color:${heading}; }
-      .file-entry { margin-bottom:1.5em; padding:1em; border:2px solid ${border};
-        border-radius:8px; background:${bg === "#000000" ? "#111" : bg}; }
-      a { color:${link}; text-decoration:none; }
-      a:hover { color:${hover}; text-decoration:underline; }
-      button { margin:0.5em 0.5em 0 0; background:${bg === "#000000" ? "#222" : bg};
-        color:${button}; border:1px solid ${button}; padding:0.3em 0.6em; cursor:pointer; }
-      button:hover { background:${button}; color:${bg}; }
-      video { width:100%; max-width:720px; margin-top:1em; border:2px solid ${border};
-        border-radius:6px; display:block; }
-      .controls { margin-top:0.5em; }
-      .duration { margin-top:0.5em; font-size:0.9em; color:${text}; }
-    `;
+    const root = document.documentElement;
+    root.style.setProperty('--bg', bg);
+    root.style.setProperty('--text', text);
+    root.style.setProperty('--border', border);
+    root.style.setProperty('--link', link);
+    root.style.setProperty('--hover', hover);
+    root.style.setProperty('--button', button);
+    root.style.setProperty('--heading', heading);
 
     // === Routing logic ===
     const params = new URLSearchParams(window.location.search);
@@ -58,6 +46,7 @@
           const ul = document.createElement("ul");
           for (const [filename, meta] of Object.entries(data)) {
             const li = document.createElement("li");
+            li.className = "file-entry";
             li.innerHTML = `<a href="?id=${meta.uuid}">${filename}</a>`;
             ul.appendChild(li);
           }
@@ -73,18 +62,20 @@
           const link = entry.link;
 
           app.innerHTML = `
-            <h2>${filename}</h2>
-            <p>UUID: <code>${entry.uuid}</code></p>
-            <p>Timestamp: <code>${entry.timestamp}</code></p>
-            <video id="player" src="${link}" controls></video>
-            <div class="controls">
-              <button onclick="player.play()">▶️ Play</button>
-              <button onclick="player.pause()">⏸️ Pause</button>
-              <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
+            <div class="file-entry">
+              <h2>${filename}</h2>
+              <p>UUID: <code>${entry.uuid}</code></p>
+              <p>Timestamp: <code>${entry.timestamp}</code></p>
+              <video id="player" src="${link}" controls></video>
+              <div class="controls">
+                <button onclick="player.play()">▶️ Play</button>
+                <button onclick="player.pause()">⏸️ Pause</button>
+                <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
+              </div>
+              <div class="duration" id="duration">⏱️ Duration: loading...</div>
+              <a href="${link}" download><button>📥 Download</button></a>
+              <p><a href="./">⬅️ Back to list</a></p>
             </div>
-            <div class="duration" id="duration">⏱️ Duration: loading...</div>
-            <a href="${link}" download><button>📥 Download</button></a>
-            <p><a href="./">⬅️ Back to list</a></p>
           `;
 
           const player = document.getElementById("player");
