@@ -12,61 +12,59 @@
   <div id="file-list">Loading files...</div>
 
   <script>
-    // 🎲 Red variants
-    const redVariants = [
-      "#ff0000", "#ff4d4d", "#ff1a75", "#ff3333", "#ff6666",
-      "#ff0055", "#ff2200", "#ff0033", "#ff2e2e", "#ff4444"
+    // 🎨 Color pool
+    const colorPool = [
+      "#000000", // black
+      "#ff0000", // red
+      "#ff9900", // orange
+      "#ffff00", // yellow
+      "#0000ff", // blue
+      "#8a2be2", // violet
+      "#800080"  // purple
     ];
 
-    // 🧠 Load history from localStorage
-    let used = JSON.parse(localStorage.getItem("usedRedVariants") || "[]");
+    // 🔀 Shuffle and assign unique colors
+    const shuffled = colorPool.sort(() => 0.5 - Math.random());
+    const [bg, text, border, link, hover, button, heading] = shuffled;
 
-    // 🧼 Reset if all used
-    if (used.length >= redVariants.length) used = [];
-
-    // 🧪 Pick unused color
-    const unused = redVariants.filter(c => !used.includes(c));
-    const accent = unused[Math.floor(Math.random() * unused.length)];
-    used.push(accent);
-    localStorage.setItem("usedRedVariants", JSON.stringify(used));
-
-    // 🎨 Inject dynamic styles
+    // 🧬 Inject dynamic styles
     const style = `
       body {
         font-family: monospace;
-        background-color: #000;
-        color: #00bfff;
+        background-color: ${bg};
+        color: ${text};
         padding: 2em;
       }
       h1 {
-        color: ${accent};
+        color: ${heading};
       }
       .file-entry {
         margin-bottom: 1.5em;
         padding: 1em;
-        border: 1px solid ${accent};
+        border: 1px solid ${border};
         border-radius: 8px;
-        background-color: #111;
+        background-color: ${bg === "#000000" ? "#111111" : bg};
       }
       a {
-        color: ${accent};
+        color: ${link};
         text-decoration: none;
       }
       a:hover {
+        color: ${hover};
         text-decoration: underline;
       }
       button {
         margin-top: 0.5em;
-        background-color: #222;
-        color: ${accent};
-        border: 1px solid ${accent};
+        background-color: ${bg === "#000000" ? "#222222" : bg};
+        color: ${button};
+        border: 1px solid ${button};
         padding: 0.3em 0.6em;
         cursor: pointer;
         font-family: monospace;
       }
       button:hover {
-        background-color: ${accent};
-        color: #000;
+        background-color: ${button};
+        color: ${bg};
       }
     `;
     document.getElementById("dynamic-style").textContent = style;
