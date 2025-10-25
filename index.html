@@ -95,30 +95,22 @@
       const distribManifest = await res.json();
 
       const byteArrays = [];
-      let buffer = "";
 
       for (let i = 0; i < distribManifest.parts.length; i++) {
         const partUrl = distribManifest.parts[i];
         statusEl.textContent = `⬇️ Fetching chunk ${i+1}/${distribManifest.parts.length}…`;
         const chunk = await fetch(partUrl).then(r => r.text());
-        buffer += chunk;
 
-        if (i % 5 === 4 || i === distribManifest.parts.length - 1) {
-          const bytes = decodeBase64Chunk(buffer);
-          byteArrays.push(bytes);
-          buffer = "";
-        }
+        // Flush immediately for every chunk
+        const bytes = decodeBase64Chunk(chunk);
+        byteArrays.push(bytes);
       }
 
-      const totalLength = byteArrays.reduce((sum, arr) => sum + arr.length, 0);
-      const merged = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const arr of byteArrays) {
-        merged.set(arr, offset);
-        offset += arr.length;
-      }
-
-      return { blob: new Blob([merged], { type: "video/mp4" }), originalName: distribManifest.original };
+      // Build the Blob directly from the array of Uint8Arrays
+      return {
+        blob: new Blob(byteArrays, { type: "video/mp4" }),
+        originalName: distribManifest.original
+      };
     }
 
     fetch("uploads/manifest.json")
