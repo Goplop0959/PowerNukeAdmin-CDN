@@ -113,29 +113,29 @@
               `⏱️ Duration: ${min}m ${sec}s`;
           });
 
-          if (entry.type === "Pure") {
+                    if (entry.type === "Pure") {
             // Direct link
             player.src = entry.link;
             downloadEl.href = entry.link;
             downloadEl.download = filename;
-          } else if (type === "Distributed") {
-  // Distributed: fetch manifest + chunks
+          } else if (entry.type === "Distributed") {
+            // Distributed: fetch manifest + chunks
             statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
             fetchDistributedBase64(entry.link)
               .then(({ base64, originalName }) => {
                 statusEl.textContent = "🔧 Reassembling video data...";
                 const blob = base64ToBlob(base64);
                 const url = URL.createObjectURL(blob);
-          
+
                 // Play from blob
                 player.src = url;
                 player.load();
                 player.play();
-          
+
                 // Download from blob
                 downloadEl.href = url;
                 downloadEl.download = originalName || filename;
-          
+
                 statusEl.textContent = "✅ Ready";
               })
               .catch(err => {
