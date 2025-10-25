@@ -118,7 +118,7 @@
             player.src = entry.link;
             downloadEl.href = entry.link;
             downloadEl.download = filename;
-          } } else if (type === "Distributed") {
+          } else if (type === "Distributed") {
   // Distributed: fetch manifest + chunks
             statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
             fetchDistributedBase64(entry.link)
