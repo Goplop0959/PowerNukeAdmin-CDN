@@ -113,7 +113,7 @@
               `⏱️ Duration: ${min}m ${sec}s`;
           });
 
-                    if (entry.type === "Pure") {
+          if (entry.type === "Pure") {
             // Direct link
             player.src = entry.link;
             downloadEl.href = entry.link;
@@ -140,11 +140,11 @@
               })
               .catch(err => {
                 console.error(err);
-                // Show the actual reason
                 statusEl.textContent = `⚠️ Failed to reconstruct distributed video: ${err.message}`;
                 document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
               });
           }
+        }
       })
       .catch(err => {
         app.textContent = "⚠️ Failed to load manifest.";
