@@ -1,1 +1,85 @@
+/* === Power Nuke Admin CDN MainCSS.css === */
 
+/* Define variables with safe defaults */
+:root {
+  --bg: #000000;
+  --text: #0ff;
+  --border: #0ff;
+  --link: #0ff;
+  --hover: #ff0;
+  --button: #0ff;
+  --heading: #f00;
+}
+
+/* Base layout */
+body {
+  font-family: monospace, monospace;
+  background-color: var(--bg);
+  color: var(--text);
+  padding: 2em;
+  margin: 0;
+}
+
+h1 {
+  color: var(--heading);
+  margin-bottom: 1em;
+}
+
+h2 {
+  color: var(--heading);
+  margin-top: 1.5em;
+}
+
+/* File entry cards */
+.file-entry {
+  margin-bottom: 1.5em;
+  padding: 1em;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg);
+}
+
+/* Links */
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--hover);
+  text-decoration: underline;
+}
+
+/* Buttons */
+button {
+  margin: 0.5em 0.5em 0 0;
+  background-color: var(--bg);
+  color: var(--button);
+  border: 1px solid var(--button);
+  padding: 0.3em 0.6em;
+  cursor: pointer;
+  font-family: monospace;
+}
+button:hover {
+  background-color: var(--button);
+  color: var(--bg);
+}
+
+/* Video player */
+video {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 1em;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  display: block;
+}
+
+/* Controls and duration */
+.controls {
+  margin-top: 0.5em;
+}
+.duration {
+  margin-top: 0.5em;
+  font-size: 0.9em;
+  color: var(--text);
+}
