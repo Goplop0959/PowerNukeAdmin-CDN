@@ -44,14 +44,24 @@
       return new Blob([bytes], { type: "video/mp4" });
     }
 
+    // Convert any github.com/raw link into media.githubusercontent.com/media
+    function toMediaUrl(url) {
+      if (url.includes("github.com") && url.includes("/raw/")) {
+        return url
+          .replace("https://github.com/", "https://media.githubusercontent.com/media/")
+          .replace("/raw/refs/heads/", "/refs/heads/");
+      }
+      return url;
+    }
+
     async function fetchDistributedBase64(manifestLink) {
-      const res = await fetch(manifestLink);
+      const res = await fetch(toMediaUrl(manifestLink));
       if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
       const distribManifest = await res.json();
 
       let fullBase64 = "";
       for (let i = 0; i < distribManifest.parts.length; i++) {
-        const partUrl = distribManifest.parts[i];
+        const partUrl = toMediaUrl(distribManifest.parts[i]);
         const partRes = await fetch(partUrl);
         if (!partRes.ok) throw new Error(`Failed to fetch chunk ${i+1}: ${partRes.status}`);
         const chunk = await partRes.text();
@@ -114,9 +124,10 @@
           });
 
           if (entry.type === "Pure") {
-            // Direct link
-            player.src = entry.link;
-            downloadEl.href = entry.link;
+            // Direct link (convert to media if needed)
+            const mediaLink = toMediaUrl(entry.link);
+            player.src = mediaLink;
+            downloadEl.href = mediaLink;
             downloadEl.download = filename;
           } else if (entry.type === "Distributed") {
             // Distributed: fetch manifest + chunks
