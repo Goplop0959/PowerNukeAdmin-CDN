@@ -37,7 +37,7 @@
     const uuid = params.get("id");
     const app = document.getElementById("app");
 
-    // Helper: base64 -> Blob (mp4)
+    // Helpers
     function base64ToBlob(b64) {
       const binary = atob(b64);
       const len = binary.length;
@@ -46,14 +46,12 @@
       return new Blob([bytes], { type: "video/mp4" });
     }
 
-    // Helper: fetch distributed manifest JSON (from Uploads repo raw link) and reconstruct base64
     async function fetchDistributedBase64(manifestLink) {
       const res = await fetch(manifestLink);
       if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
-      const distribManifest = await res.json(); // { original, timestamp, parts: [rawLinks...] }
+      const distribManifest = await res.json();
 
       let fullBase64 = "";
-      // Fetch each part in order (each is a raw .txt containing base64 chunk)
       for (let i = 0; i < distribManifest.parts.length; i++) {
         const partUrl = distribManifest.parts[i];
         const partRes = await fetch(partUrl);
@@ -74,7 +72,7 @@
           for (const [filename, meta] of Object.entries(data)) {
             const li = document.createElement("li");
             li.className = "file-entry";
-            li.innerHTML = `<a href="?id=${meta.uuid}">${filename} <small>[${meta.type || "Pure"}]</small></a>`;
+            li.innerHTML = `<a href="?id=${meta.uuid}">${filename} <small>[${meta.type}]</small></a>`;
             ul.appendChild(li);
           }
           app.appendChild(ul);
@@ -86,22 +84,20 @@
             return;
           }
           const filename = Object.keys(data).find(k => data[k].uuid === uuid);
-          const link = entry.link;
 
-          // Base markup (we may replace the video src if Distributed)
           app.innerHTML = `
             <div class="file-entry">
               <h2>${filename}</h2>
               <p>UUID: <code>${entry.uuid}</code></p>
               <p>Timestamp: <code>${entry.timestamp}</code></p>
-              <video id="player" ${entry.type === "Pure" ? `src="${link}"` : ""} controls></video>
+              <video id="player" controls></video>
               <div class="controls">
                 <button onclick="player.play()">▶️ Play</button>
                 <button onclick="player.pause()">⏸️ Pause</button>
                 <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
               </div>
               <div class="duration" id="duration">⏱️ Duration: loading...</div>
-              <a id="downloadLink" href="${link}" download><button>📥 Download</button></a>
+              <a id="downloadLink" href="#" download><button>📥 Download</button></a>
               <p><a href="./">⬅️ Back to list</a></p>
               <div id="status" class="status"></div>
             </div>
@@ -119,11 +115,15 @@
               `⏱️ Duration: ${min}m ${sec}s`;
           });
 
-          if ((entry.type || "Pure") === "Distributed") {
-            // Show progress
+          if (entry.type === "Pure") {
+            // Direct link
+            player.src = entry.link;
+            downloadEl.href = entry.link;
+            downloadEl.download = filename;
+          } else if (entry.type === "Distributed") {
+            // Distributed: fetch manifest + chunks
             statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
-            // For Distributed, the entry.link points to the distributed manifest raw JSON in Uploads repo
-            fetchDistributedBase64(link)
+            fetchDistributedBase64(entry.link)
               .then(({ base64, originalName }) => {
                 statusEl.textContent = "🔧 Reassembling video data...";
                 const blob = base64ToBlob(base64);
@@ -132,7 +132,6 @@
                 player.load();
                 player.play();
 
-                // Update download link to the reconstructed blob
                 downloadEl.href = url;
                 downloadEl.download = originalName || filename;
                 statusEl.textContent = "✅ Ready";
@@ -140,7 +139,7 @@
               .catch(err => {
                 console.error(err);
                 statusEl.textContent = "⚠️ Failed to reconstruct distributed video.";
-                app.querySelector("#duration").textContent = "⏱️ Duration: unavailable";
+                document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
               });
           }
         }
