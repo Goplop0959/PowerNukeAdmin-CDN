@@ -16,13 +16,11 @@
       "#ff0000", "#cc0000", "#ff6600", "#ff9900", "#ffff00",
       "#cccc00", "#3366ff", "#8a2be2", "#9400d3"
     ];
-
     const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
     const text = brightColors[Math.floor(Math.random() * brightColors.length)];
     const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
     const shuffle = arr => arr.sort(() => 0.5 - Math.random());
     const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
-
     const root = document.documentElement;
     root.style.setProperty('--bg', bg);
     root.style.setProperty('--text', text);
@@ -128,12 +126,16 @@
                 statusEl.textContent = "🔧 Reassembling video data...";
                 const blob = base64ToBlob(base64);
                 const url = URL.createObjectURL(blob);
+
+                // Play from blob
                 player.src = url;
                 player.load();
                 player.play();
 
+                // Download from blob
                 downloadEl.href = url;
                 downloadEl.download = originalName || filename;
+
                 statusEl.textContent = "✅ Ready";
               })
               .catch(err => {
