@@ -37,6 +37,33 @@
     const uuid = params.get("id");
     const app = document.getElementById("app");
 
+    // Helper: base64 -> Blob (mp4)
+    function base64ToBlob(b64) {
+      const binary = atob(b64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      return new Blob([bytes], { type: "video/mp4" });
+    }
+
+    // Helper: fetch distributed manifest JSON (from Uploads repo raw link) and reconstruct base64
+    async function fetchDistributedBase64(manifestLink) {
+      const res = await fetch(manifestLink);
+      if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
+      const distribManifest = await res.json(); // { original, timestamp, parts: [rawLinks...] }
+
+      let fullBase64 = "";
+      // Fetch each part in order (each is a raw .txt containing base64 chunk)
+      for (let i = 0; i < distribManifest.parts.length; i++) {
+        const partUrl = distribManifest.parts[i];
+        const partRes = await fetch(partUrl);
+        if (!partRes.ok) throw new Error(`Failed to fetch chunk ${i+1}: ${partRes.status}`);
+        const chunk = await partRes.text();
+        fullBase64 += chunk;
+      }
+      return { base64: fullBase64, originalName: distribManifest.original };
+    }
+
     fetch("uploads/manifest.json")
       .then(res => res.json())
       .then(data => {
@@ -47,7 +74,7 @@
           for (const [filename, meta] of Object.entries(data)) {
             const li = document.createElement("li");
             li.className = "file-entry";
-            li.innerHTML = `<a href="?id=${meta.uuid}">${filename}</a>`;
+            li.innerHTML = `<a href="?id=${meta.uuid}">${filename} <small>[${meta.type || "Pure"}]</small></a>`;
             ul.appendChild(li);
           }
           app.appendChild(ul);
@@ -61,24 +88,29 @@
           const filename = Object.keys(data).find(k => data[k].uuid === uuid);
           const link = entry.link;
 
+          // Base markup (we may replace the video src if Distributed)
           app.innerHTML = `
             <div class="file-entry">
               <h2>${filename}</h2>
               <p>UUID: <code>${entry.uuid}</code></p>
               <p>Timestamp: <code>${entry.timestamp}</code></p>
-              <video id="player" src="${link}" controls></video>
+              <video id="player" ${entry.type === "Pure" ? `src="${link}"` : ""} controls></video>
               <div class="controls">
                 <button onclick="player.play()">▶️ Play</button>
                 <button onclick="player.pause()">⏸️ Pause</button>
                 <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
               </div>
               <div class="duration" id="duration">⏱️ Duration: loading...</div>
-              <a href="${link}" download><button>📥 Download</button></a>
+              <a id="downloadLink" href="${link}" download><button>📥 Download</button></a>
               <p><a href="./">⬅️ Back to list</a></p>
+              <div id="status" class="status"></div>
             </div>
           `;
 
           const player = document.getElementById("player");
+          const statusEl = document.getElementById("status");
+          const downloadEl = document.getElementById("downloadLink");
+
           player.addEventListener("loadedmetadata", () => {
             const dur = Math.floor(player.duration);
             const min = Math.floor(dur / 60);
@@ -86,6 +118,31 @@
             document.getElementById("duration").textContent =
               `⏱️ Duration: ${min}m ${sec}s`;
           });
+
+          if ((entry.type || "Pure") === "Distributed") {
+            // Show progress
+            statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
+            // For Distributed, the entry.link points to the distributed manifest raw JSON in Uploads repo
+            fetchDistributedBase64(link)
+              .then(({ base64, originalName }) => {
+                statusEl.textContent = "🔧 Reassembling video data...";
+                const blob = base64ToBlob(base64);
+                const url = URL.createObjectURL(blob);
+                player.src = url;
+                player.load();
+                player.play();
+
+                // Update download link to the reconstructed blob
+                downloadEl.href = url;
+                downloadEl.download = originalName || filename;
+                statusEl.textContent = "✅ Ready";
+              })
+              .catch(err => {
+                console.error(err);
+                statusEl.textContent = "⚠️ Failed to reconstruct distributed video.";
+                app.querySelector("#duration").textContent = "⏱️ Duration: unavailable";
+              });
+          }
         }
       })
       .catch(err => {
