@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Power Nuke Admin CDN</title>
+  <link rel="stylesheet" href="MainCSS.css">
+</head>
+<body>
+  <h1>ðŸŽ¬ Power Nuke Admin CDN</h1>
+  <div id="app">Loading...</div>
 
+  <script>
+    // === Safe Color Scheme via CSS variables ===
+    const darkColors = ["#000000", "#111111", "#222222", "#0033cc", "#660066"];
+    const brightColors = [
+      "#ff0000", "#cc0000", "#ff6600", "#ff9900", "#ffff00",
+      "#cccc00", "#3366ff", "#8a2be2", "#9400d3"
+    ];
+
+    const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
+    const text = brightColors[Math.floor(Math.random() * brightColors.length)];
+    const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
+    const shuffle = arr => arr.sort(() => 0.5 - Math.random());
+    const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
+
+    const root = document.documentElement;
+    root.style.setProperty('--bg', bg);
+    root.style.setProperty('--text', text);
+    root.style.setProperty('--border', border);
+    root.style.setProperty('--link', link);
+    root.style.setProperty('--hover', hover);
+    root.style.setProperty('--button', button);
+    root.style.setProperty('--heading', heading);
+
+    // === Routing logic ===
+    const params = new URLSearchParams(window.location.search);
+    const uuid = params.get("id");
+    const app = document.getElementById("app");
+
+    fetch("uploads/manifest.json")
+      .then(res => res.json())
+      .then(data => {
+        if (!uuid) {
+          // === List view ===
+          app.innerHTML = "<h2>Available Videos</h2>";
+          const ul = document.createElement("ul");
+          for (const [filename, meta] of Object.entries(data)) {
+            const li = document.createElement("li");
+            li.className = "file-entry";
+            li.innerHTML = `<a href="?id=${meta.uuid}">${filename}</a>`;
+            ul.appendChild(li);
+          }
+          app.appendChild(ul);
+        } else {
+          // === Single video view ===
+          const entry = Object.values(data).find(v => v.uuid === uuid);
+          if (!entry) {
+            app.textContent = "âŒ Video not found.";
+            return;
+          }
+          const filename = Object.keys(data).find(k => data[k].uuid === uuid);
+          const link = entry.link;
+
+          app.innerHTML = `
+            <div class="file-entry">
+              <h2>${filename}</h2>
+              <p>UUID: <code>${entry.uuid}</code></p>
+              <p>Timestamp: <code>${entry.timestamp}</code></p>
+              <video id="player" src="${link}" controls></video>
+              <div class="controls">
+                <button onclick="player.play()">â–¶ï¸ Play</button>
+                <button onclick="player.pause()">â¸ï¸ Pause</button>
+                <button onclick="player.currentTime -= 10">âª Rewind 10s</button>
+              </div>
+              <div class="duration" id="duration">â±ï¸ Duration: loading...</div>
+              <a href="${link}" download><button>ðŸ“¥ Download</button></a>
+              <p><a href="./">â¬…ï¸ Back to list</a></p>
+            </div>
+          `;
+
+          const player = document.getElementById("player");
+          player.addEventListener("loadedmetadata", () => {
+            const dur = Math.floor(player.duration);
+            const min = Math.floor(dur / 60);
+            const sec = dur % 60;
+            document.getElementById("duration").textContent =
+              `â±ï¸ Duration: ${min}m ${sec}s`;
+          });
+        }
+      })
+      .catch(err => {
+        app.textContent = "âš ï¸ Failed to load manifest.";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
