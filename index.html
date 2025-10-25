@@ -4,47 +4,19 @@
   <meta charset="UTF-8">
   <title>Power Nuke Admin CDN</title>
   <link rel="stylesheet" href="MainCSS.css">
+  <style>
+    body { background: #111; color: #eee; font-family: sans-serif; }
+    video { max-width: 90%; max-height: 70vh; background: black; }
+    .file-entry { margin: 1em 0; }
+    .status { margin-top: 0.5em; font-size: 0.9em; color: #aaa; }
+  </style>
 </head>
 <body>
   <h1>Power Nuke Admin CDN</h1>
-  <div id="app">Loading...</div>
+  <div id="app">Loading…</div>
 
   <script>
-    // === Safe Color Scheme via CSS variables ===
-    const darkColors = ["#000000", "#111111", "#222222", "#0033cc", "#660066"];
-    const brightColors = [
-      "#ff0000", "#cc0000", "#ff6600", "#ff9900", "#ffff00",
-      "#cccc00", "#3366ff", "#8a2be2", "#9400d3"
-    ];
-    const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
-    const text = brightColors[Math.floor(Math.random() * brightColors.length)];
-    const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
-    const shuffle = arr => arr.sort(() => 0.5 - Math.random());
-    const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
-    const root = document.documentElement;
-    root.style.setProperty('--bg', bg);
-    root.style.setProperty('--text', text);
-    root.style.setProperty('--border', border);
-    root.style.setProperty('--link', link);
-    root.style.setProperty('--hover', hover);
-    root.style.setProperty('--button', button);
-    root.style.setProperty('--heading', heading);
-
-    // === Routing logic ===
-    const params = new URLSearchParams(window.location.search);
-    const uuid = params.get("id");
-    const app = document.getElementById("app");
-
-    // Helpers
-    function base64ToBlob(b64) {
-      const binary = atob(b64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-      return new Blob([bytes], { type: "video/mp4" });
-    }
-
-    // Convert any github.com/raw link into media.githubusercontent.com/media
+    // Convert github.com/raw links to media form
     function toMediaUrl(url) {
       if (url.includes("github.com") && url.includes("/raw/")) {
         return url
@@ -54,27 +26,61 @@
       return url;
     }
 
-    async function fetchDistributedBase64(manifestLink) {
-      const res = await fetch(toMediaUrl(manifestLink));
-      if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
-      const distribManifest = await res.json();
-
-      let fullBase64 = "";
-      for (let i = 0; i < distribManifest.parts.length; i++) {
-        const partUrl = toMediaUrl(distribManifest.parts[i]);
-        const partRes = await fetch(partUrl);
-        if (!partRes.ok) throw new Error(`Failed to fetch chunk ${i+1}: ${partRes.status}`);
-        const chunk = await partRes.text();
-        fullBase64 += chunk;
+    // Decode base64 chunk into Uint8Array
+    function decodeBase64Chunk(b64) {
+      const byteChars = atob(b64);
+      const bytes = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        bytes[i] = byteChars.charCodeAt(i);
       }
-      return { base64: fullBase64, originalName: distribManifest.original };
+      return bytes;
     }
+
+    // Fetch distributed manifest + chunks, decode incrementally
+    async function fetchDistributed(manifestLink, statusEl) {
+      const res = await fetch(toMediaUrl(manifestLink));
+      if (!res.ok) throw new Error(`Failed to fetch manifest: ${res.status}`);
+      const manifest = await res.json();
+
+      const byteArrays = [];
+      let buffer = "";
+
+      for (let i = 0; i < manifest.parts.length; i++) {
+        const partUrl = toMediaUrl(manifest.parts[i]);
+        statusEl.textContent = `⬇️ Fetching chunk ${i+1}/${manifest.parts.length}…`;
+        const chunk = await fetch(partUrl).then(r => r.text());
+        buffer += chunk;
+
+        // Flush every 5 chunks (tune as needed)
+        if (i % 5 === 4 || i === manifest.parts.length - 1) {
+          const bytes = decodeBase64Chunk(buffer);
+          byteArrays.push(bytes);
+          buffer = "";
+        }
+      }
+
+      // Merge all byte arrays
+      const totalLength = byteArrays.reduce((sum, arr) => sum + arr.length, 0);
+      const merged = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const arr of byteArrays) {
+        merged.set(arr, offset);
+        offset += arr.length;
+      }
+
+      return { blob: new Blob([merged], { type: "video/mp4" }), originalName: manifest.original };
+    }
+
+    // === Routing logic ===
+    const params = new URLSearchParams(window.location.search);
+    const uuid = params.get("id");
+    const app = document.getElementById("app");
 
     fetch("uploads/manifest.json")
       .then(res => res.json())
       .then(data => {
         if (!uuid) {
-          // === List view ===
+          // List view
           app.innerHTML = "<h2>Available Videos</h2>";
           const ul = document.createElement("ul");
           for (const [filename, meta] of Object.entries(data)) {
@@ -85,7 +91,7 @@
           }
           app.appendChild(ul);
         } else {
-          // === Single video view ===
+          // Single video view
           const entry = Object.values(data).find(v => v.uuid === uuid);
           if (!entry) {
             app.textContent = "❌ Video not found.";
@@ -104,7 +110,7 @@
                 <button onclick="player.pause()">⏸️ Pause</button>
                 <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
               </div>
-              <div class="duration" id="duration">⏱️ Duration: loading...</div>
+              <div class="duration" id="duration">⏱️ Duration: loading…</div>
               <a id="downloadLink" href="#" download><button>📥 Download</button></a>
               <p><a href="./">⬅️ Back to list</a></p>
               <div id="status" class="status"></div>
@@ -124,34 +130,27 @@
           });
 
           if (entry.type === "Pure") {
-            // Direct link (convert to media if needed)
             const mediaLink = toMediaUrl(entry.link);
             player.src = mediaLink;
             downloadEl.href = mediaLink;
             downloadEl.download = filename;
           } else if (entry.type === "Distributed") {
-            // Distributed: fetch manifest + chunks
-            statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
-            fetchDistributedBase64(entry.link)
-              .then(({ base64, originalName }) => {
-                statusEl.textContent = "🔧 Reassembling video data...";
-                const blob = base64ToBlob(base64);
+            statusEl.textContent = "⬇️ Fetching distributed manifest and chunks…";
+            fetchDistributed(entry.link, statusEl)
+              .then(({ blob, originalName }) => {
+                statusEl.textContent = "🔧 Reassembling video data…";
                 const url = URL.createObjectURL(blob);
-
-                // Play from blob
                 player.src = url;
                 player.load();
                 player.play();
 
-                // Download from blob
                 downloadEl.href = url;
                 downloadEl.download = originalName || filename;
-
                 statusEl.textContent = "✅ Ready";
               })
               .catch(err => {
                 console.error(err);
-                statusEl.textContent = `⚠️ Failed to reconstruct distributed video: ${err.message}`;
+                statusEl.textContent = `⚠️ Failed: ${err.message}`;
                 document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
               });
           }
