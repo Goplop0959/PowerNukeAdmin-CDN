@@ -34,5 +34,11 @@
     "timestamp": 1761403492,
     "type": "Pure",
     "link": "https://media.githubusercontent.com/media/Goplop0959/Uploads/refs/heads/main/uploads/Pompeii2.mp4"
+  },
+  "Doors.mp4": {
+    "uuid": "35ea44b3-76b3-43e1-9317-86287bcaf480",
+    "timestamp": 1761422418,
+    "type": "Distributed",
+    "link": "https://media.githubusercontent.com/media/Goplop0959/Uploads/refs/heads/main/DistributeUploads/Manifests/35ea44b3-76b3-43e1-9317-86287bcaf480.json"
   }
 }
