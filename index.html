@@ -55,7 +55,7 @@
           // === Single video view ===
           const entry = Object.values(data).find(v => v.uuid === uuid);
           if (!entry) {
-            app.textContent = "âŒ Video not found.";
+            app.textContent = "❌ Video not found.";
             return;
           }
           const filename = Object.keys(data).find(k => data[k].uuid === uuid);
@@ -68,13 +68,13 @@
               <p>Timestamp: <code>${entry.timestamp}</code></p>
               <video id="player" src="${link}" controls></video>
               <div class="controls">
-                <button onclick="player.play()">â–¶ï¸ Play</button>
-                <button onclick="player.pause()">â¸ï¸ Pause</button>
-                <button onclick="player.currentTime -= 10">âª Rewind 10s</button>
+                <button onclick="player.play()">▶️ Play</button>
+                <button onclick="player.pause()">⏸️ Pause</button>
+                <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
               </div>
-              <div class="duration" id="duration">â±ï¸ Duration: loading...</div>
-              <a href="${link}" download><button>ðŸ“¥ Download</button></a>
-              <p><a href="./">â¬…ï¸ Back to list</a></p>
+              <div class="duration" id="duration">⏱️ Duration: loading...</div>
+              <a href="${link}" download><button>📥 Download</button></a>
+              <p><a href="./">⬅️ Back to list</a></p>
             </div>
           `;
 
@@ -84,12 +84,12 @@
             const min = Math.floor(dur / 60);
             const sec = dur % 60;
             document.getElementById("duration").textContent =
-              `â±ï¸ Duration: ${min}m ${sec}s`;
+              `⏱️ Duration: ${min}m ${sec}s`;
           });
         }
       })
       .catch(err => {
-        app.textContent = "âš ï¸ Failed to load manifest.";
+        app.textContent = "⚠️ Failed to load manifest.";
         console.error(err);
       });
   </script>
