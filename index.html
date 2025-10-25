@@ -5,28 +5,81 @@
   <title>Power Nuke Admin CDN</title>
   <link rel="stylesheet" href="MainCSS.css">
   <style>
-    body { background: #111; color: #eee; font-family: sans-serif; }
-    video { max-width: 90%; max-height: 70vh; background: black; }
-    .file-entry { margin: 1em 0; }
-    .status { margin-top: 0.5em; font-size: 0.9em; color: #aaa; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: sans-serif;
+      margin: 0;
+      padding: 1em;
+    }
+    h1, h2 {
+      color: var(--heading);
+    }
+    a {
+      color: var(--link);
+      text-decoration: none;
+    }
+    a:hover {
+      color: var(--hover);
+      text-decoration: underline;
+    }
+    .file-entry {
+      border: 1px solid var(--border);
+      padding: 0.5em;
+      margin: 0.5em 0;
+      border-radius: 4px;
+    }
+    button {
+      background-color: var(--button);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.3em 0.6em;
+      margin: 0.2em;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: var(--hover);
+    }
+    video {
+      max-width: 100%;
+      background: black;
+      margin-top: 0.5em;
+    }
+    .status {
+      margin-top: 0.5em;
+      font-size: 0.9em;
+      color: var(--link);
+    }
   </style>
 </head>
 <body>
   <h1>Power Nuke Admin CDN</h1>
-  <div id="app">Loading…</div>
+  <div id="app">Loading...</div>
 
   <script>
-    // Convert github.com/raw links to media form
-    function toMediaUrl(url) {
-      if (url.includes("github.com") && url.includes("/raw/")) {
-        return url
-          .replace("https://github.com/", "https://media.githubusercontent.com/media/")
-          .replace("/raw/refs/heads/", "/refs/heads/");
-      }
-      return url;
-    }
+    // === Safe Color Scheme via CSS variables ===
+    const darkColors = ["#000000", "#111111", "#222222", "#0033cc", "#660066"];
+    const brightColors = ["#ff0000", "#cc0000", "#ff6600", "#ff9900", "#ffff00",
+      "#cccc00", "#3366ff", "#8a2be2", "#9400d3"];
+    const bg = darkColors[Math.floor(Math.random() * darkColors.length)];
+    const text = brightColors[Math.floor(Math.random() * brightColors.length)];
+    const pool = [...darkColors, ...brightColors].filter(c => c !== bg && c !== text);
+    const shuffle = arr => arr.sort(() => 0.5 - Math.random());
+    const [border, link, hover, button, heading] = shuffle(pool).slice(0, 5);
+    const root = document.documentElement;
+    root.style.setProperty('--bg', bg);
+    root.style.setProperty('--text', text);
+    root.style.setProperty('--border', border);
+    root.style.setProperty('--link', link);
+    root.style.setProperty('--hover', hover);
+    root.style.setProperty('--button', button);
+    root.style.setProperty('--heading', heading);
 
-    // Decode base64 chunk into Uint8Array
+    // === Routing logic ===
+    const params = new URLSearchParams(window.location.search);
+    const uuid = params.get("id");
+    const app = document.getElementById("app");
+
     function decodeBase64Chunk(b64) {
       const byteChars = atob(b64);
       const bytes = new Uint8Array(byteChars.length);
@@ -36,30 +89,27 @@
       return bytes;
     }
 
-    // Fetch distributed manifest + chunks, decode incrementally
     async function fetchDistributed(manifestLink, statusEl) {
-      const res = await fetch(toMediaUrl(manifestLink));
-      if (!res.ok) throw new Error(`Failed to fetch manifest: ${res.status}`);
-      const manifest = await res.json();
+      const res = await fetch(manifestLink);
+      if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
+      const distribManifest = await res.json();
 
       const byteArrays = [];
       let buffer = "";
 
-      for (let i = 0; i < manifest.parts.length; i++) {
-        const partUrl = toMediaUrl(manifest.parts[i]);
-        statusEl.textContent = `⬇️ Fetching chunk ${i+1}/${manifest.parts.length}…`;
+      for (let i = 0; i < distribManifest.parts.length; i++) {
+        const partUrl = distribManifest.parts[i];
+        statusEl.textContent = `⬇️ Fetching chunk ${i+1}/${distribManifest.parts.length}…`;
         const chunk = await fetch(partUrl).then(r => r.text());
         buffer += chunk;
 
-        // Flush every 5 chunks (tune as needed)
-        if (i % 5 === 4 || i === manifest.parts.length - 1) {
+        if (i % 5 === 4 || i === distribManifest.parts.length - 1) {
           const bytes = decodeBase64Chunk(buffer);
           byteArrays.push(bytes);
           buffer = "";
         }
       }
 
-      // Merge all byte arrays
       const totalLength = byteArrays.reduce((sum, arr) => sum + arr.length, 0);
       const merged = new Uint8Array(totalLength);
       let offset = 0;
@@ -68,19 +118,13 @@
         offset += arr.length;
       }
 
-      return { blob: new Blob([merged], { type: "video/mp4" }), originalName: manifest.original };
+      return { blob: new Blob([merged], { type: "video/mp4" }), originalName: distribManifest.original };
     }
-
-    // === Routing logic ===
-    const params = new URLSearchParams(window.location.search);
-    const uuid = params.get("id");
-    const app = document.getElementById("app");
 
     fetch("uploads/manifest.json")
       .then(res => res.json())
       .then(data => {
         if (!uuid) {
-          // List view
           app.innerHTML = "<h2>Available Videos</h2>";
           const ul = document.createElement("ul");
           for (const [filename, meta] of Object.entries(data)) {
@@ -91,7 +135,6 @@
           }
           app.appendChild(ul);
         } else {
-          // Single video view
           const entry = Object.values(data).find(v => v.uuid === uuid);
           if (!entry) {
             app.textContent = "❌ Video not found.";
@@ -110,7 +153,7 @@
                 <button onclick="player.pause()">⏸️ Pause</button>
                 <button onclick="player.currentTime -= 10">⏪ Rewind 10s</button>
               </div>
-              <div class="duration" id="duration">⏱️ Duration: loading…</div>
+              <div class="duration" id="duration">⏱️ Duration: loading...</div>
               <a id="downloadLink" href="#" download><button>📥 Download</button></a>
               <p><a href="./">⬅️ Back to list</a></p>
               <div id="status" class="status"></div>
@@ -129,16 +172,11 @@
               `⏱️ Duration: ${min}m ${sec}s`;
           });
 
-          if (entry.type === "Pure") {
-            const mediaLink = toMediaUrl(entry.link);
-            player.src = mediaLink;
-            downloadEl.href = mediaLink;
-            downloadEl.download = filename;
-          } else if (entry.type === "Distributed") {
-            statusEl.textContent = "⬇️ Fetching distributed manifest and chunks…";
+          if (entry.type === "Distributed") {
+            statusEl.textContent = "⬇️ Fetching distributed manifest and chunks...";
             fetchDistributed(entry.link, statusEl)
               .then(({ blob, originalName }) => {
-                statusEl.textContent = "🔧 Reassembling video data…";
+                statusEl.textContent = "🔧 Reassembling video data...";
                 const url = URL.createObjectURL(blob);
                 player.src = url;
                 player.load();
@@ -150,7 +188,7 @@
               })
               .catch(err => {
                 console.error(err);
-                statusEl.textContent = `⚠️ Failed: ${err.message}`;
+                statusEl.textContent = `⚠️ Failed to reconstruct distributed video: ${err.message}`;
                 document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
               });
           }
