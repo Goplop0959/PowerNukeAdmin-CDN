@@ -26,13 +26,13 @@
   "Pompeii1 (2).mp4": {
     "uuid": "2ef388a7-6228-4e7a-b6d7-f638eb4bfccb",
     "timestamp": 1761402250,
-    "type": "Distributed",
-    "link": "https://github.com/Goplop0959/Uploads/raw/refs/heads/main/DistributeUploads/Manifests/2ef388a7-6228-4e7a-b6d7-f638eb4bfccb.json"
+    "type": "Pure",
+    "link": "https://github.com/Goplop0959/Uploads/raw/refs/heads/main/uploads/Pompeii1%20(2).mp4"
   },
   "Pompeii2.mp4": {
     "uuid": "446bf5cb-6326-4f0c-973f-8a476581d794",
     "timestamp": 1761403492,
-    "type": "Distributed",
-    "link": "https://github.com/Goplop0959/Uploads/raw/refs/heads/main/DistributeUploads/Manifests/446bf5cb-6326-4f0c-973f-8a476581d794.json"
+    "type": "Pure",
+    "link": "https://github.com/Goplop0959/Uploads/raw/refs/heads/main/uploads/Pompeii2.mp4"
   }
 }
