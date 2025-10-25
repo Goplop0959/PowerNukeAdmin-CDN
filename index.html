@@ -80,15 +80,6 @@
     const uuid = params.get("id");
     const app = document.getElementById("app");
 
-    function decodeBase64Chunk(b64) {
-      const byteChars = atob(b64);
-      const bytes = new Uint8Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        bytes[i] = byteChars.charCodeAt(i);
-      }
-      return bytes;
-    }
-
     async function fetchDistributed(manifestLink, statusEl) {
       const res = await fetch(manifestLink);
       if (!res.ok) throw new Error(`Failed to fetch distributed manifest: ${res.status}`);
@@ -99,14 +90,10 @@
       for (let i = 0; i < distribManifest.parts.length; i++) {
         const partUrl = distribManifest.parts[i];
         statusEl.textContent = `⬇️ Fetching chunk ${i+1}/${distribManifest.parts.length}…`;
-        const chunk = await fetch(partUrl).then(r => r.text());
-
-        // Flush immediately for every chunk
-        const bytes = decodeBase64Chunk(chunk);
-        byteArrays.push(bytes);
+        const chunk = await fetch(partUrl).then(r => r.arrayBuffer());
+        byteArrays.push(new Uint8Array(chunk));
       }
 
-      // Build the Blob directly from the array of Uint8Arrays
       return {
         blob: new Blob(byteArrays, { type: "video/mp4" }),
         originalName: distribManifest.original
@@ -181,6 +168,28 @@
               .catch(err => {
                 console.error(err);
                 statusEl.textContent = `⚠️ Failed to reconstruct distributed video: ${err.message}`;
+                document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
+              });
+          } else if (entry.type === "Pure") {
+            statusEl.textContent = "⬇️ Fetching video...";
+            fetch(entry.link)
+              .then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch Pure video: ${r.status}`);
+                return r.blob();
+              })
+              .then(blob => {
+                const url = URL.createObjectURL(blob);
+                player.src = url;
+                player.load();
+                player.play();
+
+                downloadEl.href = url;
+                downloadEl.download = filename;
+                statusEl.textContent = "✅ Ready";
+              })
+              .catch(err => {
+                console.error(err);
+                statusEl.textContent = `⚠️ Failed to load Pure video: ${err.message}`;
                 document.getElementById("duration").textContent = "⏱️ Duration: unavailable";
               });
           }
